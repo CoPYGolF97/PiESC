@@ -1,6 +1,14 @@
 # PiESC
 
 **An independent open-source ESC project for RP2350.**
+![PiESC S1 PCB](Hardware/PiESC_S1_PCB20x50/Images/PiESC_S1_PCB20x50FB.jpg)
+
+### PiESC S1 PCB 20×50
+
+| Front                                                              | Back                                                              |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| ![Front](Hardware/PiESC_S1_PCB20x50/Images/PiESC_S1_PCB20x50F.png) | ![Back](Hardware/PiESC_S1_PCB20x50/Images/PiESC_S1_PCB20x50B.png) |
+
 
 ---
 
