@@ -70,17 +70,15 @@ PiESC is intended to be an open-source project.
 We welcome developers, electronics enthusiasts, researchers, makers, and anyone interested in motor control to explore the project and contribute ideas, testing, documentation, hardware designs, or code.
 
 ### How you can help
-
 PiESC is incomplete, so help is very welcome. Good places to start:
+- Review the schematics and PCB layouts (1CH Test board, 4-in-1 V4) and report mistakes
+- Write a DShot decoder using the RP2350 PIO
+- Back-EMF zero-crossing / sensorless control
+- Protection: over-current, under-voltage, watchdog
+- Telemetry over UART
+- Documentation, pinouts, bring-up guides
 
-Review the schematics and PCB layouts (1CH Test board, 4-in-1 V4) and report mistakes
-Write a DShot decoder using the RP2350 PIO
-Back-EMF zero-crossing / sensorless control
-Protection: over-current, under-voltage, watchdog
-Telemetry over UART
-Documentation, pinouts, bring-up guides
-
-See CONTRIBUTING.md and the Issues tab.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the Issues tab.
 
 ### License
 
@@ -168,18 +166,15 @@ PiESC ตั้งใจให้เป็นโปรเจกต์ Open Sourc
 เรายินดีต้อนรับนักพัฒนา ผู้สนใจอิเล็กทรอนิกส์ นักวิจัย Maker และทุกคนที่สนใจด้านการควบคุมมอเตอร์ ให้เข้ามาศึกษา ทดลอง เสนอแนวคิด ทดสอบ ปรับปรุงเอกสาร Hardware หรือ Firmware และช่วยพัฒนาโปรเจกต์ต่อ
 
 ### ช่วยเราได้อย่างไร
-
 PiESC ยังไม่สมบูรณ์ ยินดีรับความช่วยเหลือมาก ตัวอย่างงานที่เริ่มได้:
+- ตรวจ Schematic และ PCB (บอร์ดทดสอบ 1CH, 4-in-1 V4) และแจ้งข้อผิดพลาด
+- เขียนตัวถอดรหัส DShot ด้วย PIO ของ RP2350
+- BEMF zero-crossing / การควบคุมแบบ sensorless
+- ระบบป้องกัน: กระแสเกิน แรงดันต่ำ watchdog
+- Telemetry ผ่าน UART
+- เอกสาร พินเอาต์ และคู่มือทดสอบบอร์ดครั้งแรก
 
-ตรวจ Schematic และ PCB (บอร์ดทดสอบ 1CH, 4-in-1 V4) และแจ้งข้อผิดพลาด
-เขียนตัวถอดรหัส DShot ด้วย PIO ของ RP2350
-BEMF zero-crossing / การควบคุมแบบ sensorless
-ระบบป้องกัน: กระแสเกิน แรงดันต่ำ watchdog
-Telemetry ผ่าน UART
-เอกสาร พินเอาต์ และคู่มือทดสอบบอร์ดครั้งแรก
-
-ดู CONTRIBUTING.md และแท็บ Issues
-
+ดู [CONTRIBUTING.md](CONTRIBUTING.md) และแท็บ Issues
 ### ใบอนุญาต (License)
 
 โปรเจกต์นี้ใช้ใบอนุญาต **GNU General Public License v3.0** ดูรายละเอียดในไฟล์ [`LICENSE`](LICENSE)
