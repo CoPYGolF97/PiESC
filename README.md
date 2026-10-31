@@ -12,9 +12,11 @@
 
 ---
 
-## 🇬🇧 English
+## English
 
-PiESC is an open-source project exploring the design and development of Electronic Speed Controller (ESC) firmware and hardware using the RP2350 microcontroller.
+**PiESC** is an open-source Electronic Speed Controller (ESC): the board that drives the brushless motors of a drone or other multirotor aircraft. It is built around the **RP2350** microcontroller (the chip family of the Raspberry Pi Pico 2). The name comes from "Pi" (RP2350 / Pi Pico family) + "ESC".
+
+PiESC is an open-source project exploring the design and development of ESC firmware and hardware using the RP2350 microcontroller.
 
 The goal is to create another open-source option for ESC development, learning, experimentation, and future community collaboration.
 
@@ -25,6 +27,20 @@ The goal is to create another open-source option for ESC development, learning, 
 PiESC is currently an experimental project.
 
 The hardware and firmware are being developed and tested step by step. Features, circuit designs, firmware architecture, and documentation may change during development.
+
+Nothing here has been run on a motor or flown yet.
+
+⚠️ This design handles high current from lithium batteries. Mistakes can cause fire or damage. Build and test at your own risk: start with a current-limited power supply, and never leave it unattended.
+
+| Item | State |
+| --- | --- |
+| PiESC S1 PCB 20×50 (first single-ESC board) | Designed, files in this repository |
+| PiESC 1CH Test (1-motor, 2-layer test board) | Design finished, DRC clean. **Not yet ordered or tested** |
+| PiESC 4-in-1 V4, 45×50 mm (2× RP2350B, 6-layer HDI) | Layout finished, DRC clean. **Not yet ordered or tested** |
+| Firmware on a Raspberry Pi Pico 2 dev board | LED blink, USB serial, 3 complementary PWM pairs at 20 kHz with dead-time, open-loop 6-step commutation (checked with a multimeter, **not** with a motor) |
+| Not done yet | DShot input, back-EMF / sensorless control, current sensing, protection (over-current, under-voltage, watchdog), telemetry |
+
+Design files for the 1CH test board and the 4-in-1 board will be added to this repository.
 
 ### Hardware
 
@@ -53,6 +69,10 @@ PiESC is intended to be an open-source project.
 
 We welcome developers, electronics enthusiasts, researchers, makers, and anyone interested in motor control to explore the project and contribute ideas, testing, documentation, hardware designs, or code.
 
+### License
+
+This project is licensed under the **GNU General Public License v3.0**. See the [`LICENSE`](LICENSE) file.
+
 ### Development
 
 The project is being developed using:
@@ -69,7 +89,7 @@ PiESC was started by an ordinary electronics enthusiast who wanted to learn, exp
 
 The project creator is not a professional software engineer or electrical engineer. Much of the development process is based on learning through experimentation, documentation, community knowledge, and AI-assisted development.
 
-**ChatGPT is used as an AI development assistant for programming, debugging, architecture discussions, documentation, and technical exploration.**
+**AI assistants are used in this project: ChatGPT in the early stage, and Claude (Anthropic) for design review, guidance, programming, debugging, and documentation. The PCBs are drawn by the project creator, and hardware is built and tested step by step as it becomes available. The creator reviews what the AI suggests, but it may still contain mistakes.**
 
 The goal is not to claim that everything is perfect.
 
@@ -77,9 +97,11 @@ The goal is to build something useful, learn along the way, and make the work av
 
 ---
 
-## 🇹🇭 ภาษาไทย
+## ภาษาไทย
 
-PiESC คือโปรเจกต์ Open Source ที่กำลังศึกษาและพัฒนา Firmware และ Hardware สำหรับ Electronic Speed Controller (ESC) โดยใช้ไมโครคอนโทรลเลอร์ RP2350
+**PiESC** คือ Electronic Speed Controller (ESC) แบบโอเพนซอร์ส เป็นบอร์ดที่ควบคุมมอเตอร์ไร้แปรงถ่านของโดรนหรืออากาศยานมัลติโรเตอร์ สร้างบนไมโครคอนโทรลเลอร์ **RP2350** (ชิปตระกูลเดียวกับ Raspberry Pi Pico 2) ชื่อมาจาก "Pi" (ตระกูล RP2350 / Pi Pico) รวมกับ "ESC"
+
+PiESC คือโปรเจกต์ Open Source ที่กำลังศึกษาและพัฒนา Firmware และ Hardware สำหรับ ESC โดยใช้ไมโครคอนโทรลเลอร์ RP2350
 
 เป้าหมายของเราคือการสร้างทางเลือกอีกทางหนึ่งสำหรับการพัฒนา ESC แบบ Open Source เพื่อการเรียนรู้ การทดลอง และเปิดโอกาสให้ชุมชนเข้ามาช่วยพัฒนาต่อในอนาคต
 
@@ -90,6 +112,20 @@ PiESC คือโปรเจกต์ Open Source ที่กำลังศ�
 ขณะนี้ PiESC ยังเป็นโปรเจกต์สำหรับการทดลองและพัฒนา
 
 Hardware และ Firmware กำลังถูกพัฒนาและทดสอบทีละขั้นตอน ดังนั้นคุณสมบัติ วงจร โครงสร้าง Firmware และเอกสารต่าง ๆ อาจมีการเปลี่ยนแปลงระหว่างการพัฒนา
+
+ยังไม่เคยต่อมอเตอร์หรือบินจริง
+
+⚠️ การออกแบบนี้ใช้กระแสสูงจากแบตเตอรี่ลิเธียม ความผิดพลาดอาจทำให้เกิดไฟไหม้หรือความเสียหาย สร้างและทดสอบด้วยความเสี่ยงของตัวเอง เริ่มต้นด้วยแหล่งจ่ายไฟจำกัดกระแส และไม่ปล่อยทิ้งไว้โดยไม่มีคนดู
+
+| รายการ | สถานะ |
+| --- | --- |
+| PiESC S1 PCB 20×50 (บอร์ด ESC ตัวแรก) | ออกแบบแล้ว ไฟล์อยู่ใน repository นี้ |
+| PiESC 1CH Test (บอร์ดทดสอบ 1 มอเตอร์ 2 ชั้น) | ออกแบบเสร็จ DRC ผ่าน **ยังไม่ได้สั่งผลิตและยังไม่ได้ทดสอบ** |
+| PiESC 4-in-1 V4 ขนาด 45×50 mm (RP2350B 2 ตัว, HDI 6 ชั้น) | วางลายเสร็จ DRC ผ่าน **ยังไม่ได้สั่งผลิตและยังไม่ได้ทดสอบ** |
+| Firmware บนบอร์ด Raspberry Pi Pico 2 | LED กะพริบ, USB serial, PWM 3 คู่ 20 kHz พร้อม dead-time, คอมมิวเทต 6 สเต็ปแบบ open-loop (ตรวจด้วยมัลติมิเตอร์ **ยังไม่ได้ต่อมอเตอร์**) |
+| ยังไม่ได้ทำ | รับสัญญาณ DShot, BEMF / sensorless, การวัดกระแส, ระบบป้องกัน (กระแสเกิน แรงดันต่ำ watchdog), Telemetry |
+
+ไฟล์ออกแบบของบอร์ด 1CH Test และ 4-in-1 จะทยอยเพิ่มใน repository นี้
 
 ### Hardware
 
@@ -118,6 +154,10 @@ PiESC ตั้งใจให้เป็นโปรเจกต์ Open Sourc
 
 เรายินดีต้อนรับนักพัฒนา ผู้สนใจอิเล็กทรอนิกส์ นักวิจัย Maker และทุกคนที่สนใจด้านการควบคุมมอเตอร์ ให้เข้ามาศึกษา ทดลอง เสนอแนวคิด ทดสอบ ปรับปรุงเอกสาร Hardware หรือ Firmware และช่วยพัฒนาโปรเจกต์ต่อ
 
+### ใบอนุญาต (License)
+
+โปรเจกต์นี้ใช้ใบอนุญาต **GNU General Public License v3.0** ดูรายละเอียดในไฟล์ [`LICENSE`](LICENSE)
+
 ### เครื่องมือที่ใช้ในการพัฒนา
 
 โปรเจกต์นี้ใช้:
@@ -134,7 +174,7 @@ PiESC เริ่มต้นจากคนธรรมดาที่สน�
 
 ผู้ริเริ่มโปรเจกต์ไม่ได้เป็นวิศวกรซอฟต์แวร์หรือวิศวกรไฟฟ้ามืออาชีพ การพัฒนาส่วนหนึ่งเกิดจากการเรียนรู้ผ่านการทดลอง การศึกษาข้อมูล ความรู้จากชุมชน และการใช้ AI ช่วยในการพัฒนา
 
-**ChatGPT ถูกใช้เป็นผู้ช่วยด้าน AI สำหรับการเขียนโปรแกรม การแก้ไขข้อผิดพลาด การออกแบบโครงสร้าง การจัดทำเอกสาร และการพูดคุยด้านเทคนิค**
+**โปรเจกต์นี้ใช้ AI เป็นผู้ช่วย: ช่วงแรกใช้ ChatGPT และต่อมาใช้ Claude (Anthropic) ช่วยตรวจแบบ ให้คำแนะนำ เขียนโปรแกรม แก้ไขข้อผิดพลาด และจัดทำเอกสาร ผู้ริเริ่มโปรเจกต์เป็นผู้วาด PCB และสร้าง/ทดสอบฮาร์ดแวร์ทีละขั้นเมื่อมีของพร้อม ตรวจทานสิ่งที่ AI เสนอ แต่ยังอาจมีข้อผิดพลาดได้**
 
 เราไม่ได้อ้างว่าโปรเจกต์นี้สมบูรณ์แบบ
 
