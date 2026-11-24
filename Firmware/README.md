@@ -18,6 +18,7 @@ Not done: back-EMF sensing / closed loop, current sensing and protection, input 
 
 - Raspberry Pi Pico 2, FD6288T 3-phase gate driver, 6x IRLZ44N, 12 V supply, EMAX RS2205 2300KV motor.
 - Pins: A HIN=GP0 LIN=GP1, B HIN=GP2 LIN=GP3, C HIN=GP4 LIN=GP5, throttle input GP6, phase voltage dividers (10k/2.2k) on GP26/27/28 (not used by the current firmware).
+- ![Test rig schematic](docs/Pico_FW_TES_CH1_VER.png)
 
 ## Build and upload
 
