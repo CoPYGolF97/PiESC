@@ -35,7 +35,7 @@ PiESC is currently an experimental project.
 
 The hardware and firmware are being developed and tested step by step. Features, circuit designs, firmware architecture, and documentation may change during development.
 
-Nothing here has been run on a motor or flown yet.
+The test-rig firmware has run a motor on a perfboard rig (not flown). The PCBs in this repository have not been ordered or tested yet.
 
 ⚠️ This design handles high current from lithium batteries. Mistakes can cause fire or damage. Build and test at your own risk: start with a current-limited power supply, and never leave it unattended.
 
@@ -44,8 +44,8 @@ Nothing here has been run on a motor or flown yet.
 | PiESC S1 PCB 20×50 (first single-ESC board) | Designed, files in this repository |
 | PiESC 1CH Test (1-motor, 2-layer test board) | Design finished, DRC clean. **Not yet ordered or tested** |
 | PiESC 4-in-1 V4, 45×50 mm (2× RP2350B, 6-layer HDI) | Layout finished, DRC clean. **Not yet ordered or tested** |
-| Firmware on a Raspberry Pi Pico 2 dev board | LED blink, USB serial, 3 complementary PWM pairs at 20 kHz with dead-time, open-loop 6-step commutation (checked with a multimeter, **not** with a motor) |
-| Not done yet | DShot input, back-EMF / sensorless control, current sensing, protection (over-current, under-voltage, watchdog), telemetry |
+| Test-rig firmware ([Firmware/](Firmware/), v7.17) on a Pico 2 + FD6288T + IRLZ44N perfboard rig | Runs a motor: open-loop sine / 6-step drive, DShot150/300/600 + PWM input with auto-detect, arming/failsafe, saved settings. **Open loop only, not flight-ready** |
+| Not done yet | back-EMF / sensorless control, current sensing, protection (over-current, under-voltage, watchdog), telemetry, configurator |
 
 Design files for the 1CH test board and the 4-in-1 board will be added to this repository.
 
@@ -79,7 +79,7 @@ We welcome developers, electronics enthusiasts, researchers, makers, and anyone 
 ### How you can help
 PiESC is incomplete, so help is very welcome. Good places to start:
 - Review the schematics and PCB layouts (1CH Test board, 4-in-1 V4) and report mistakes
-- Write a DShot decoder using the RP2350 PIO
+- Test the DShot / PWM auto-detection with other flight controllers (DShot150, other ESC protocols)
 - Back-EMF zero-crossing / sensorless control
 - Protection: over-current, under-voltage, watchdog
 - Telemetry over UART
@@ -131,7 +131,7 @@ PiESC คือโปรเจกต์ Open Source ที่กำลังศ�
 
 Hardware และ Firmware กำลังถูกพัฒนาและทดสอบทีละขั้นตอน ดังนั้นคุณสมบัติ วงจร โครงสร้าง Firmware และเอกสารต่าง ๆ อาจมีการเปลี่ยนแปลงระหว่างการพัฒนา
 
-ยังไม่เคยต่อมอเตอร์หรือบินจริง
+เฟิร์มแวร์ชุดทดสอบเคยขับมอเตอร์บนบอร์ดต้นแบบ perfboard แล้ว (ยังไม่เคยบินจริง) ส่วน PCB ใน repository นี้ยังไม่ได้สั่งผลิตและยังไม่ได้ทดสอบ
 
 ⚠️ การออกแบบนี้ใช้กระแสสูงจากแบตเตอรี่ลิเธียม ความผิดพลาดอาจทำให้เกิดไฟไหม้หรือความเสียหาย สร้างและทดสอบด้วยความเสี่ยงของตัวเอง เริ่มต้นด้วยแหล่งจ่ายไฟจำกัดกระแส และไม่ปล่อยทิ้งไว้โดยไม่มีคนดู
 
@@ -140,8 +140,8 @@ Hardware และ Firmware กำลังถูกพัฒนาและท�
 | PiESC S1 PCB 20×50 (บอร์ด ESC ตัวแรก) | ออกแบบแล้ว ไฟล์อยู่ใน repository นี้ |
 | PiESC 1CH Test (บอร์ดทดสอบ 1 มอเตอร์ 2 ชั้น) | ออกแบบเสร็จ DRC ผ่าน **ยังไม่ได้สั่งผลิตและยังไม่ได้ทดสอบ** |
 | PiESC 4-in-1 V4 ขนาด 45×50 mm (RP2350B 2 ตัว, HDI 6 ชั้น) | วางลายเสร็จ DRC ผ่าน **ยังไม่ได้สั่งผลิตและยังไม่ได้ทดสอบ** |
-| Firmware บนบอร์ด Raspberry Pi Pico 2 | LED กะพริบ, USB serial, PWM 3 คู่ 20 kHz พร้อม dead-time, คอมมิวเทต 6 สเต็ปแบบ open-loop (ตรวจด้วยมัลติมิเตอร์ **ยังไม่ได้ต่อมอเตอร์**) |
-| ยังไม่ได้ทำ | รับสัญญาณ DShot, BEMF / sensorless, การวัดกระแส, ระบบป้องกัน (กระแสเกิน แรงดันต่ำ watchdog), Telemetry |
+| Firmware ชุดทดสอบ ([Firmware/](Firmware/), v7.17) บนบอร์ดต้นแบบ Pico 2 + FD6288T + IRLZ44N | ขับมอเตอร์ได้: sine / 6 สเต็ปแบบ open-loop, รับ DShot150/300/600 และ PWM ตรวจจับอัตโนมัติ, arm/failsafe, จำค่าตั้ง **เป็น open-loop เท่านั้น ยังไม่พร้อมบิน** |
+| ยังไม่ได้ทำ | BEMF / sensorless, การวัดกระแส, ระบบป้องกัน (กระแสเกิน แรงดันต่ำ watchdog), Telemetry, โปรแกรมตั้งค่า |
 
 ไฟล์ออกแบบของบอร์ด 1CH Test และ 4-in-1 จะทยอยเพิ่มใน repository นี้
 
@@ -175,7 +175,7 @@ PiESC ตั้งใจให้เป็นโปรเจกต์ Open Sourc
 ### ช่วยเราได้อย่างไร
 PiESC ยังไม่สมบูรณ์ ยินดีรับความช่วยเหลือมาก ตัวอย่างงานที่เริ่มได้:
 - ตรวจ Schematic และ PCB (บอร์ดทดสอบ 1CH, 4-in-1 V4) และแจ้งข้อผิดพลาด
-- เขียนตัวถอดรหัส DShot ด้วย PIO ของ RP2350
+- ทดสอบการตรวจจับ DShot / PWM อัตโนมัติกับ FC ตัวอื่น (DShot150 และโปรโตคอลอื่น)
 - BEMF zero-crossing / การควบคุมแบบ sensorless
 - ระบบป้องกัน: กระแสเกิน แรงดันต่ำ watchdog
 - Telemetry ผ่าน UART
