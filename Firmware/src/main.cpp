@@ -5,7 +5,8 @@
 // The motor is stepped from a timer interrupt, so printing to USB or reading the FC can never delay a step.
 //
 // Keys (serial monitor):
-//   m = input mode: KEYS -> DSHOT -> PWM -> KEYS ...   (starts in KEYS, nothing spins on power-up)
+//   m = input mode: KEYS -> DSHOT -> PWM -> AUTO -> KEYS ...  (AUTO finds DShot150/300/600 or PWM by itself; default;
+//       the mode is saved. Nothing spins on power-up: the motor must be armed first.)
 //   x = EMERGENCY STOP (all off, disarm)               ? = status
 //   r = reverse direction (only while stopped)
 //   KEYS mode only:  s = start   + / - = duty +-1%   f / g = faster / slower step time
@@ -81,8 +82,8 @@
 // {high phase, low phase}, A=0 B=1 C=2
 static const int STEPS[6][2] = {{0, 1}, {0, 2}, {1, 2}, {1, 0}, {2, 0}, {2, 1}};
 
-enum Mode { M_KEYS = 0, M_DSHOT = 1, M_PWM = 2 };
-static const char *MODE_NAME[3] = {"KEYS", "DSHOT", "PWM"};
+enum Mode { M_KEYS = 0, M_DSHOT = 1, M_PWM = 2, M_AUTO = 3 };   // M_AUTO: find DShot150/300/600 or PWM by itself
+static const char *MODE_NAME[4] = {"KEYS", "DSHOT", "PWM", "AUTO"};
 
 static uint32_t wrap_val;
 static uint32_t dead_ticks;
@@ -107,6 +108,9 @@ static repeating_timer_t slew_timer;
 
 // main loop only
 static Mode mode = M_KEYS;
+static Mode src = M_KEYS;        // AUTO mode: input found so far (M_KEYS = still scanning)
+static int auto_step = 0;        // AUTO scan: which candidate is being listened to
+static uint32_t auto_t0 = 0;     // AUTO scan: when this candidate started
 static bool armed = false;
 static bool arm_timing = false;
 static uint32_t arm_since_ms = 0;
@@ -118,19 +122,19 @@ static uint32_t park_ms = 0;
 // ---------------------------------------------------------------------------
 // Saved settings (direction + drive type) in the last 4 KB sector of the flash, so they survive power off.
 // Written only while the motor is stopped (flash erase stops the CPU for tens of milliseconds).
-#define SETTINGS_MAGIC 0x50694554u    // "PiET" (layout with input mode)
+#define SETTINGS_MAGIC 0x50694555u    // "PiEU" (v7.17: new default input mode AUTO; older records are ignored once)
 #define SETTINGS_OFFSET (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
 
 static bool settings_read(uint32_t *d, uint32_t *t, uint32_t *m) {
     const uint32_t *p = (const uint32_t *)(XIP_BASE + SETTINGS_OFFSET);
     if (p[0] != SETTINGS_MAGIC) return false;
     if (p[4] != (p[0] ^ p[1] ^ p[2] ^ p[3] ^ 0xA5A5A5A5u)) return false;
-    if ((p[1] != 1 && p[1] != 2) || p[2] > 1 || p[3] > 2) return false;
+    if ((p[1] != 1 && p[1] != 2) || p[2] > 1 || p[3] > 3) return false;
     *d = p[1]; *t = p[2]; *m = p[3];
     return true;
 }
 
-static uint32_t boot_mode = M_DSHOT;   // input mode after power-up (default DSHOT; needs 0.5 s zero throttle to arm)
+static uint32_t boot_mode = M_AUTO;   // input mode after power-up (default AUTO; needs 0.5 s zero throttle to arm)
 
 static void settings_load() {
     uint32_t d, t, m;
@@ -327,6 +331,16 @@ static volatile uint32_t ds_last_ms = 0;
 static volatile bool ds_seen = false;
 static volatile uint32_t ds_ok = 0, ds_bad = 0;
 
+static uint32_t cur_rate = DSHOT_RATE;   // DShot rate the receiver is set to now
+static volatile uint32_t ds_streak = 0;  // good frames in a row (used by AUTO to recognise the rate)
+
+// 24 MHz state machine clock at DShot300 (one bit = 80 cycles); scales with the rate. Takes effect at dshot_start().
+static void dshot_set_rate(uint32_t r) {
+    cur_rate = r;
+    float hz = 24000000.0f * (float)r / 300.0f;
+    sm_config_set_clkdiv(&dsh_cfg, (float)clock_get_hz(clk_sys) / hz);
+}
+
 static void dshot_setup() {
     dsh_off = pio_add_program(dsh_pio, &dshot_prog);
     dsh_sm = pio_claim_unused_sm(dsh_pio, true);
@@ -336,9 +350,7 @@ static void dshot_setup() {
     sm_config_set_jmp_pin(&dsh_cfg, IN_PIN);
     sm_config_set_in_shift(&dsh_cfg, false, true, 16);   // shift left, autopush at 16 bits
     sm_config_set_fifo_join(&dsh_cfg, PIO_FIFO_JOIN_RX);
-    // 24 MHz state machine clock at DShot300 (one bit = 80 cycles); scales with the rate
-    float hz = 24000000.0f * (float)DSHOT_RATE / 300.0f;
-    sm_config_set_clkdiv(&dsh_cfg, (float)clock_get_hz(clk_sys) / hz);
+    dshot_set_rate(DSHOT_RATE);
 }
 
 static void dshot_start() {
@@ -360,8 +372,10 @@ static void dshot_poll() {
             ds_last_ms = to_ms_since_boot(get_absolute_time());
             ds_seen = true;
             ds_ok++;
+            ds_streak++;
         } else {
             ds_bad++;
+            ds_streak = 0;
         }
     }
 }
@@ -388,23 +402,119 @@ static void gpio_cb(uint gpio, uint32_t events) {
     }
 }
 
-static void set_mode(Mode m) {
-    stopping = false;
-    stop_motor();
-    armed = false;
-    arm_timing = false;
+// listen on IN_PIN as the given input type (does not touch the motor)
+static void input_select(Mode m, uint32_t rate) {
     pio_sm_set_enabled(dsh_pio, dsh_sm, false);
     gpio_set_irq_enabled(IN_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, false);
     gpio_init(IN_PIN);
     gpio_set_dir(IN_PIN, GPIO_IN);
     gpio_pull_down(IN_PIN);
     if (m == M_DSHOT) {
+        dshot_set_rate(rate);
+        ds_streak = 0;
         dshot_start();
     } else if (m == M_PWM) {
         pw_seen = false;
+        pw_ok = 0;
         gpio_set_irq_enabled_with_callback(IN_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_cb);
     }
+}
+
+// ---- AUTO: find the input type by itself (motor is off while this runs).
+//   1. DShot rate: measure the bit period of a DShot frame (16 rising edges, 15 bit periods) by polling the pin.
+//      15 bit periods = 100 us (DShot150), 50 us (DShot300), 25 us (DShot600). The timing does not depend on the
+//      data bits, so it cannot be fooled by all-zero or all-one frames.
+//   2. Check: switch the PIO receiver to that rate and wait for good frames (CRC) in a row.
+//   3. If there is no DShot signal, listen for 1-2 ms PWM pulses.
+//   After a signal loss it starts again, so a changed protocol (for example the DShot rate changed in
+//   Betaflight) is found again by itself.
+#define AUTO_VERIFY_MS  300    // time to get good frames after the rate was measured
+#define AUTO_PWM_MS     300    // listening time for PWM (50 Hz frames are 20 ms apart)
+#define AUTO_DS_STREAK  10     // good DShot frames in a row needed
+#define AUTO_PWM_PULSES 4      // valid PWM pulses needed
+
+// Returns the time of 15 DShot bit periods in us, or 0 if no DShot frame was found. Blocks for up to ~4 ms.
+static uint32_t dshot_probe() {
+    uint32_t t_limit = time_us_32() + 4000;
+    for (;;) {
+        while (gpio_get(IN_PIN))                                     // wait until the line is low
+            if ((int32_t)(time_us_32() - t_limit) > 0) return 0;
+        uint32_t low_t0 = time_us_32();
+        bool gap = false;
+        while (!gpio_get(IN_PIN)) {                                  // low for 20 us = gap between frames
+            if ((uint32_t)(time_us_32() - low_t0) >= 20) { gap = true; break; }
+        }
+        if (!gap) continue;                                          // we were inside a frame, try again
+        while (!gpio_get(IN_PIN))                                    // first rising edge = start of a frame
+            if ((int32_t)(time_us_32() - t_limit) > 0) return 0;
+        uint32_t t0 = time_us_32();
+        int edges = 0;
+        bool prev = true;
+        uint32_t guard = 12000;                                      // about 400 us of polling
+        while (edges < 15 && guard) {
+            bool v = gpio_get(IN_PIN);
+            if (v && !prev) edges++;
+            prev = v;
+            guard--;
+        }
+        uint32_t t1 = time_us_32();
+        if (edges < 15) return 0;                                    // not DShot (PWM has one edge per frame)
+        return t1 - t0;
+    }
+}
+
+static void auto_begin(uint32_t now_ms) {
+    src = M_KEYS;
+    auto_step = 0;
+    auto_t0 = now_ms;
+    input_select(M_KEYS, 0);                                          // plain input pin for polling
+}
+
+static void auto_scan(uint32_t now_ms) {
+    if (auto_step == 0) {                                             // measure the DShot bit period
+        uint32_t best = 0;
+        int good = 0;
+        for (int i = 0; i < 12; i++) {
+            uint32_t t = dshot_probe();
+            if (t) { good++; if (!best || t < best) best = t; }       // shortest = least disturbed by interrupts
+        }
+        uint32_t r = 0;
+        if (good >= 3) r = best < 37 ? 600 : (best < 75 ? 300 : (best < 150 ? 150 : 0));
+        if (r) {
+            input_select(M_DSHOT, r);
+            auto_step = 1;
+        } else {
+            input_select(M_PWM, 0);
+            auto_step = 2;
+        }
+        auto_t0 = now_ms;
+    } else if (auto_step == 1) {                                      // check the measured rate with real frames
+        dshot_poll();
+        if (ds_streak >= AUTO_DS_STREAK) {
+            src = M_DSHOT;
+            printf("INPUT: DShot%lu detected\n", (unsigned long)cur_rate);
+        } else if ((int32_t)(now_ms - auto_t0) >= (int32_t)AUTO_VERIFY_MS) {
+            auto_begin(now_ms);
+        }
+    } else {                                                          // listen for PWM
+        if (pw_ok >= AUTO_PWM_PULSES) {
+            src = M_PWM;
+            printf("INPUT: PWM detected\n");
+        } else if ((int32_t)(now_ms - auto_t0) >= (int32_t)AUTO_PWM_MS) {
+            auto_begin(now_ms);
+        }
+    }
+}
+
+static void set_mode(Mode m) {
+    stopping = false;
+    stop_motor();
+    armed = false;
+    arm_timing = false;
     mode = m;
+    src = M_KEYS;
+    if (m == M_AUTO) auto_begin(to_ms_since_boot(get_absolute_time()));
+    else             input_select(m, DSHOT_RATE);
 }
 
 // throttle (per mille 0..1000) -> step time and duty
@@ -419,11 +529,19 @@ static void apply_map(uint32_t u) {
 
 static void control_update() {
     if (mode == M_KEYS) return;
+    Mode in = mode;
+    if (mode == M_AUTO) {
+        if (src == M_KEYS) {                                   // still looking for the input type
+            auto_scan(to_ms_since_boot(get_absolute_time()));
+            if (src == M_KEYS) return;                         // motor stays off while scanning
+        }
+        in = src;
+    }
     bool fresh;
     bool at_zero;
     uint32_t u;
     uint32_t now_ms;
-    if (mode == M_DSHOT) {
+    if (in == M_DSHOT) {
         dshot_poll();                                   // read frames first, then take the time
         now_ms = to_ms_since_boot(get_absolute_time());
         fresh = ds_seen && (int32_t)(now_ms - ds_last_ms) < (int32_t)SIGNAL_TIMEOUT_MS;
@@ -455,6 +573,7 @@ static void control_update() {
         if (running) { stop_motor(); printf("SIGNAL LOST -> stop\n"); }
         if (armed) { armed = false; printf("DISARMED\n"); }
         arm_timing = false;
+        if (mode == M_AUTO) auto_begin(now_ms);                // look for the input again
         return;
     }
     if (!armed) {
@@ -531,9 +650,11 @@ static void show() {
            running ? "RUN " : "STOP", MODE_NAME[mode], sine_on ? "SINE" : "6STEP", armed ? 1 : 0, (int)idx, dir > 0 ? "fwd" : "rev",
            (unsigned)(dp / 10), (unsigned)(dp % 10), (unsigned)(dc / 10), (unsigned)(dc % 10),
            (unsigned long)period_us, (unsigned long)target_us);
-    if (mode == M_DSHOT)
-        printf("  dshot thr=%lu ok=%lu bad=%lu", (unsigned long)ds_thr, (unsigned long)ds_ok, (unsigned long)ds_bad);
-    if (mode == M_PWM)
+    Mode in = (mode == M_AUTO) ? src : mode;
+    if (mode == M_AUTO && src == M_KEYS) printf("  scanning input");
+    if (in == M_DSHOT)
+        printf("  dshot%lu thr=%lu ok=%lu bad=%lu", (unsigned long)cur_rate, (unsigned long)ds_thr, (unsigned long)ds_ok, (unsigned long)ds_bad);
+    if (in == M_PWM)
         printf("  pwm width=%luus ok=%lu bad=%lu", (unsigned long)pw_width, (unsigned long)pw_ok, (unsigned long)pw_bad);
     printf("\n");
 }
@@ -568,7 +689,7 @@ int main() {
     add_repeating_timer_us(-SLEW_US, slew_cb, NULL, &slew_timer);
 
     sleep_ms(2000);
-    printf("\nPiESC-FW test v7.16. m=input mode (KEYS/DSHOT/PWM) x=STOP ?=status\n");
+    printf("\nPiESC-FW test v7.17. m=input mode (KEYS/DSHOT/PWM) x=STOP ?=status\n");
     show();
 
     absolute_time_t next_print = make_timeout_time_ms(1000);
@@ -578,7 +699,7 @@ int main() {
         if (c != PICO_ERROR_TIMEOUT) {
             switch (c) {
                 case 'm':
-                    set_mode((Mode)((mode + 1) % 3));
+                    set_mode((Mode)((mode + 1) % 4));
                     settings_save();
                     break;
                 case 'x':
